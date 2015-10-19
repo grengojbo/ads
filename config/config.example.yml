@@ -1,0 +1,15 @@
+db:
+  adapter: postgres
+name: qor_example
+user: uqor_example
+password: pqor_example
+host: localhost
+port: 5432
+debug: true
+secret: secretkey
+limit: 5
+redis:
+  host: localhost
+session:
+  name: sessionid
+adapter: cookie
