@@ -2,6 +2,8 @@
 *.o
 *.a
 *.so
+*.orig
+*.log
 
 # Folders
 _obj
@@ -18,9 +20,11 @@ _cgo_gotypes.go
 _cgo_export.*
 
 _testmain.go
+tmp/*
 
 *.exe
 *.test
 *.prof
+ads
 
 config/config.yml
