@@ -1,14 +1,15 @@
 package services
 
 import (
-	// "fmt"
+
 	// "time"
+	"fmt"
 	"os"
 	// "strconv"
 
 	"github.com/grengojbo/ads/config"
 	"github.com/jackc/pgx"
-	log "gopkg.in/inconshreveable/log15.v2"
+	// log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type Database struct {
@@ -16,7 +17,7 @@ type Database struct {
 	Config  *config.Config
 	DB      *pgx.ConnPool
 	Release bool
-	log     log.Logger
+	Log     *Logger
 }
 
 // Start PostgreSQL pool
@@ -30,12 +31,14 @@ func (self *Database) GetPoll() (pool *pgx.ConnPool) {
 	pool, err := pgx.NewConnPool(self.getConfig())
 
 	if err != nil {
-		// log.Printf("Unable to create connection pool to database: %v\n", err)
+		self.Log.Error(fmt.Sprintf("Unable to create connection pool to database: %v\n", err))
 		os.Exit(1)
 	}
+	self.Log.Info("Start Database service...")
 	return pool
 }
 
+// Return connection pool config
 func (self *Database) getConfig() (cfg pgx.ConnPoolConfig) {
 	connConfig := pgx.ConnConfig{
 		Host:     self.Config.DB.Host,
@@ -77,7 +80,7 @@ FROM "stores"
 WHERE id=$1
     `)
 	if err != nil {
-		// log.Printf("Prepare [getZoneById] %v\n", err)
+		self.Log.Error("Prepare", "getZoneById", err.Error())
 		return
 	}
 
@@ -87,8 +90,7 @@ WHERE id=$1
 VALUES ($1::timestamptz(0), NOW()::timestamptz(0), $1::date, $1::time(0), $3, $4, $2, $5, $6, $7, $8, $9, $10::int2, $11, $12, $13, $14, $15)
   `)
 	if err != nil {
-		log.Error("setShowBanner", err.Error())
-		// log.Printf("Prepare [setShowBanner] %v\n", err)
+		self.Log.Error("Prepare", "setShowBanner", err.Error())
 		return
 	}
 
@@ -112,7 +114,7 @@ SELECT
 FROM "stores" WHERE lower(name)=lower($1)
     `)
 	if err != nil {
-		// log.Printf("Prepare [getZoneByName] %v\n", err)
+		self.Log.Error("Prepare", "getZoneByName", err.Error())
 		return
 	}
 	return

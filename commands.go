@@ -89,7 +89,12 @@ func runWeb(c *cli.Context) {
 		release = true
 		fmt.Printf("Listening on: %s:%d\n", c.String("host"), conf.Port)
 	}
-	db := services.Database{Config: &conf, Release: release}
+	l := services.Logger{Config: &conf, Release: release}
+	l.Start()
+	// l.Debug("Logger %s %s", "start", "debug mode.")
+	// l.Info("Logger mode info")
+	// l.Error("Logger mode error")
+	db := services.Database{Config: &conf, Release: release, Log: &l}
 	pool := db.GetPoll()
 	defer pool.Close()
 	// server := services.Server{Config: &conf, DB: pool, Release: release}
