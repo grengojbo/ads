@@ -61,6 +61,8 @@ func (self *Server) redirect(c *gin.Context) {
 	c.Redirect(301, "/")
 }
 
+// crossdomain.xml
+
 // ping pong :)
 func (self *Server) ping(c *gin.Context) {
 	c.String(200, "pong")

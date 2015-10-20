@@ -2,14 +2,16 @@ package config
 
 type Config struct {
 	Port int `default:"7000" env:"PORT"`
+	Host string
 	DB   struct {
-		Name     string `default:"qor_example"`
-		Adapter  string `default:"postgres"`
-		User     string
-		Password string
-		Host     string `default:"localhost"`
-		Port     uint   `default:"5432"`
-		Debug    bool   `default:"false"`
+		Name        string `default:"qor_example"`
+		Adapter     string `default:"postgres"`
+		User        string
+		Password    string
+		Host        string `default:"localhost"`
+		Port        uint   `default:"5432"`
+		Debug       bool   `default:"false"`
+		Connections int    `default:"100"`
 	}
 	Redis struct {
 		Host     string `default:"localhost"`

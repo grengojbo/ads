@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 
-	"bitbucket.org/grengojbo/ads-core/config"
+	"github.com/grengojbo/ads/config"
+	"github.com/grengojbo/ads/services"
 	// "bitbucket.org/grengojbo/ads-core/db"
 
 	"github.com/codegangsta/cli"
@@ -83,11 +84,14 @@ func runWeb(c *cli.Context) {
 	// pool := db.InitDB(&conf)
 	// defer pool.Close()
 
-	// release := false
+	release := false
 	if c.Bool("release") {
-		// release = true
+		release = true
 		fmt.Printf("Listening on: %s:%d\n", c.String("host"), conf.Port)
 	}
+	db := services.Database{Config: &conf, Release: release}
+	pool := db.GetPoll()
+	defer pool.Close()
 	// server := services.Server{Config: &conf, DB: pool, Release: release}
 	// server.Start()
 
