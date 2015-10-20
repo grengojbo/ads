@@ -31,5 +31,5 @@ func (self *Logger) Start() {
 	}
 	self.Logger.SetHandler(log.LvlFilterHandler(self.Level, log.StdoutHandler))
 	// self.SetHandler(log.LvlFilterHandler(lvl, log.DiscardHandler()))
-	self.Info("Start Logger service...")
+	self.Info("starting Logger service...")
 }

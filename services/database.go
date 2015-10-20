@@ -34,7 +34,7 @@ func (self *Database) GetPoll() (pool *pgx.ConnPool) {
 		self.Log.Error(fmt.Sprintf("Unable to create connection pool to database: %v\n", err))
 		os.Exit(1)
 	}
-	self.Log.Info("Start Database service...")
+	self.Log.Info("starting Database service...")
 	return pool
 }
 

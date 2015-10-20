@@ -7,28 +7,29 @@ import (
 
 	"strconv"
 
-	"bitbucket.org/grengojbo/ads-core/config"
-	"bitbucket.org/grengojbo/ads-core/core"
+	"github.com/grengojbo/ads/config"
 	// "bitbucket.org/grengojbo/ads-core/db"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx"
+	// "github.com/jackc/pgx"
 	"github.com/nu7hatch/gouuid"
-	log "gopkg.in/inconshreveable/log15.v2"
+	// log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type Server struct {
 	// Bus    *bus.Bus
 	Config  *config.Config
-	DB      *pgx.ConnPool
+	DB      *Database
 	Release bool
 	r, s    *gin.Engine
-	log     log.Logger
+	Log     *Logger
+	// log     log.Logger
 }
 
 // Start Web Server
 func (self *Server) Start() {
+	self.Log.Info("starting server service...")
 	// logger := log.New()
-	self.log = log.New()
+	// self.log = log.New()
 	// mlog.Info("starting server service")
 
 	if self.Release {
@@ -71,17 +72,17 @@ func (self *Server) ping(c *gin.Context) {
 func (self *Server) showPing(c *gin.Context) {
 	u4, err := uuid.NewV4()
 	if err != nil {
-		log.Error("Is not generate uuid", err)
+		self.Log.Error("Is not generate uuid", err.Error())
 	}
 	sesUuid := fmt.Sprintf("%v", u4)
 
 	storeID, err := strconv.Atoi(c.Param("region_id"))
 	if err != nil {
-		self.log.Error("Region ID is not integer", storeID)
+		self.Log.Error("Region ID is not integer", storeID)
 	}
 
 	t := time.Now().UTC()
-	core.SaveShow(self.DB, t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), c.Request.Header.Get("Accept-Language")[0:2], c.Request.Referer(), c.Request.UserAgent())
+	// core.SaveShow(self.DB, t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), c.Request.Header.Get("Accept-Language")[0:2], c.Request.Referer(), c.Request.UserAgent())
 
 	c.Header("cache-control", "priviate, max-age=0, no-cache")
 	c.Header("pragma", "no-cache")

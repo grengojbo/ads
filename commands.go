@@ -94,11 +94,12 @@ func runWeb(c *cli.Context) {
 	// l.Debug("Logger %s %s", "start", "debug mode.")
 	// l.Info("Logger mode info")
 	// l.Error("Logger mode error")
-	db := services.Database{Config: &conf, Release: release, Log: &l}
-	pool := db.GetPoll()
-	defer pool.Close()
-	// server := services.Server{Config: &conf, DB: pool, Release: release}
-	// server.Start()
+	db := services.Database{Config: &conf, Log: &l, Release: release}
+	db.Start()
+	// pool := db.GetPoll()
+	// defer pool.Close()
+	server := services.Server{Config: &conf, Log: &l, DB: &db, Release: release}
+	server.Start()
 
 	// 	go func() {
 	// 		var zoneName string
