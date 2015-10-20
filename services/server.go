@@ -2,35 +2,30 @@ package services
 
 import (
 	"fmt"
-	// "net"
+	"net"
 	"time"
 
 	"strconv"
+	"strings"
 
-	"github.com/grengojbo/ads/config"
-	// "bitbucket.org/grengojbo/ads-core/db"
 	"github.com/gin-gonic/gin"
-	// "github.com/jackc/pgx"
+	"github.com/grengojbo/ads/config"
+	"github.com/jackc/pgx"
+	"github.com/mssola/user_agent"
 	"github.com/nu7hatch/gouuid"
-	// log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type Server struct {
-	// Bus    *bus.Bus
 	Config  *config.Config
-	DB      *Database
+	DB      *pgx.ConnPool
 	Release bool
 	r, s    *gin.Engine
 	Log     *Logger
-	// log     log.Logger
 }
 
 // Start Web Server
 func (self *Server) Start() {
 	self.Log.Info("starting server service...")
-	// logger := log.New()
-	// self.log = log.New()
-	// mlog.Info("starting server service")
 
 	if self.Release {
 		gin.SetMode(gin.ReleaseMode)
@@ -47,14 +42,7 @@ func (self *Server) Start() {
 	show := self.r.Group("show")
 	show.GET(":region_id/:umac/ping.js", self.showPing)
 
-	// go self.r.Run(fmt.Sprintf("%s:%d", self.Config.Host, self.Config.Port))
 	self.r.Run(fmt.Sprintf("%s:%d", self.Config.Host, self.Config.Port))
-}
-
-// Stop Web Server
-func (self *Server) Stop() {
-	// mlog.Info("server service stopped")
-	// nothing here
 }
 
 // Redirect no route
@@ -82,13 +70,54 @@ func (self *Server) showPing(c *gin.Context) {
 	}
 
 	t := time.Now().UTC()
-	// core.SaveShow(self.DB, t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), c.Request.Header.Get("Accept-Language")[0:2], c.Request.Referer(), c.Request.UserAgent())
+	go self.saveShow(t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), c.Request.Header.Get("Accept-Language")[0:2], c.Request.Referer(), c.Request.UserAgent())
 
 	c.Header("cache-control", "priviate, max-age=0, no-cache")
 	c.Header("pragma", "no-cache")
 	c.Header("expires", "-1")
 	c.Header("Last-Modified", fmt.Sprintf("%v", t))
-	// c.Header("Date", t.Format(time.RFC1123))
 	c.Header("Content-Type", "text/javascript")
 	c.String(200, fmt.Sprintf("var uatv_me_uuid='%s';", sesUuid))
+}
+
+func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac string, remoteIp string, acceptLanguage string, refererSrc string, userAgent string) {
+	ipv4 := false
+	var zoneId pgx.NullInt32
+	var uaBrowserVersion pgx.NullInt16
+	var zoneName pgx.NullString
+	var mac pgx.NullString
+	var referer pgx.NullString
+
+	umac, err := net.ParseMAC(userMac)
+	if err == nil {
+		mac = pgx.NullString{String: umac.String(), Valid: true}
+	}
+
+	if err := self.DB.QueryRow("getZoneById", storeID).Scan(&zoneId, &zoneName); err != nil {
+		self.Log.Error("Is not", "zoneId", storeID)
+	}
+	ua := user_agent.New(userAgent)
+
+	uaBrowserFamily, version := ua.Browser()
+	browserVersion, err := strconv.Atoi(version[0:strings.Index(version, ".")])
+	if err == nil {
+		uaBrowserVersion = pgx.NullInt16{Int16: int16(browserVersion), Valid: true}
+	}
+
+	ip, _, err := net.SplitHostPort(remoteIp)
+	if err != nil {
+		ip = "127.0.0.1"
+	}
+	if net.ParseIP(ip).To4() != nil {
+		ipv4 = true
+	}
+
+	if len(refererSrc) > 1 {
+		referer = pgx.NullString{String: refererSrc, Valid: true}
+	}
+
+	if _, err := self.DB.Exec("setShowBanner", t, sesUuid, zoneId, ua.Bot(), mac, ip, ipv4, acceptLanguage, uaBrowserFamily, uaBrowserVersion, ua.OS(), ua.Platform(), ua.Mobile(), userAgent, referer); err != nil {
+		self.Log.Error("Exec", "setShowBanner", err)
+	}
+
 }

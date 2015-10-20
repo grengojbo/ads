@@ -7,7 +7,6 @@ import (
 
 	"github.com/grengojbo/ads/config"
 	"github.com/grengojbo/ads/services"
-	// "bitbucket.org/grengojbo/ads-core/db"
 
 	"github.com/codegangsta/cli"
 	"github.com/jinzhu/configor"
@@ -39,7 +38,6 @@ func getConfig(c *cli.Context) (config.Config, error) {
 
 var Commands = []cli.Command{
 	cmdServer,
-	// cmdMigrate,
 }
 
 var cmdServer = cli.Command{
@@ -60,13 +58,6 @@ var cmdServer = cli.Command{
 	},
 }
 
-// var cmdMigrate = cli.Command{
-// 	Name:  "migrate",
-// 	Usage: "Perform database migrations",
-// 	// Description: `Perform database migrations`,
-// 	Action: runMigrate,
-// }
-
 func runWeb(c *cli.Context) {
 	ConfigRuntime()
 	conf, err := getConfig(c)
@@ -81,9 +72,6 @@ func runWeb(c *cli.Context) {
 	fmt.Printf("Build Time: %s\n", BuildTime)
 	fmt.Printf("Git Commit Hash: %s\n", GitHash)
 
-	// pool := db.InitDB(&conf)
-	// defer pool.Close()
-
 	release := false
 	if c.Bool("release") {
 		release = true
@@ -91,24 +79,11 @@ func runWeb(c *cli.Context) {
 	}
 	l := services.Logger{Config: &conf, Release: release}
 	l.Start()
-	// l.Debug("Logger %s %s", "start", "debug mode.")
-	// l.Info("Logger mode info")
-	// l.Error("Logger mode error")
+
 	db := services.Database{Config: &conf, Log: &l, Release: release}
-	db.Start()
-	// pool := db.GetPoll()
-	// defer pool.Close()
-	server := services.Server{Config: &conf, Log: &l, DB: &db, Release: release}
+	// db.Start()
+	pool := db.GetPoll()
+	defer pool.Close()
+	server := services.Server{Config: &conf, Log: &l, DB: pool, Release: release}
 	server.Start()
-
-	// 	go func() {
-	// 		var zoneName string
-	// 		fmt.Printf("Query getZoneById ---> %v=%v\n", zoneId, zoneName)
-	// 	}()
 }
-
-// func runMigrate(c *cli.Context) {
-// 	fmt.Println("Start migration ...")
-// 	// migrations.StartMigrate()
-// 	fmt.Println("Finish migration.")
-// }

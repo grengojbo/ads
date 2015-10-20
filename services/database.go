@@ -1,15 +1,11 @@
 package services
 
 import (
-
-	// "time"
 	"fmt"
 	"os"
-	// "strconv"
 
 	"github.com/grengojbo/ads/config"
 	"github.com/jackc/pgx"
-	// log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type Database struct {
@@ -22,8 +18,8 @@ type Database struct {
 
 // Start PostgreSQL pool
 func (self *Database) Start() {
-	self.DB = self.GetPoll()
-	defer self.DB.Close()
+	// self.DB = self.GetPoll()
+	// defer self.DB.Close()
 }
 
 // Get PostgreSQL pool
