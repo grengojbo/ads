@@ -1,0 +1,13 @@
+[Unit]
+Description=Advertising System
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+ExecStart=/usr/local/bin/ads -c /usr/local/etc/ads.yml server --release
+PrivateTmp=true
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

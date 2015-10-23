@@ -76,7 +76,7 @@ release: clean
 	@mkdir -p ${RELEASE_DIR}
 	@mkdir -p ${RELEASE_BUILD}
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.BuildTime=${CUR_TIME} -X main.Version=${VERSION} -X main.GitHash=${GIT_COMMIT}' -o ${RELEASE_BUILD}/$(BIN_NAME)
-	@fpm -s dir -t deb -n ${BIN_NAME} -v ${VERSION} --config-files /etc/${BIN_NAME}.yml  -m ${MAINTAINER} --vendor ${MAINTAINER} --url ${HOMEPAGE} --description '${DESCRIPTION}' --license MIT -f -p ./${RELEASE_DIR}/ ./${RELEASE_BUILD}/${BIN_NAME}=/usr/local/bin/${BIN_NAME} config/config.example.yml=/etc/${BIN_NAME}.yml
+	@fpm -s dir -t deb -n ${BIN_NAME} -v ${VERSION} --config-files /etc/${BIN_NAME}.yml  -m ${MAINTAINER} --vendor ${MAINTAINER} --url ${HOMEPAGE} --description '${DESCRIPTION}' --license MIT -f -p ./${RELEASE_DIR}/ ./${RELEASE_BUILD}/${BIN_NAME}=/usr/local/bin/${BIN_NAME} config/config.example.yml=/usr/local/etc/${BIN_NAME}.yml app-${BIN_NAME}.service=/lib/systemd/system/app-${BIN_NAME}.service
 
 clean:
 	@test ! -e ./${BIN_NAME} || rm ./${BIN_NAME}
