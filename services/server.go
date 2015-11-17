@@ -37,6 +37,7 @@ func (self *Server) Start() {
 	self.r.Use(gin.Recovery())
 
 	self.r.NoRoute(self.redirect)
+	self.r.GET("/", self.ping)
 	self.r.GET("/ping", self.ping)
 
 	show := self.r.Group("show")
@@ -70,24 +71,27 @@ func (self *Server) showPing(c *gin.Context) {
 	}
 
 	t := time.Now().UTC()
-	go self.saveShow(t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), c.Request.Header.Get("Accept-Language")[0:2], c.Request.Referer(), c.Request.UserAgent())
+	acceptLanguage := c.Request.Header.Get("Accept-Language")[0:2]
+	self.saveShow(t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), acceptLanguage, c.Request.Referer(), c.Request.UserAgent())
 
 	c.Header("cache-control", "priviate, max-age=0, no-cache")
 	c.Header("pragma", "no-cache")
 	c.Header("expires", "-1")
 	c.Header("Last-Modified", fmt.Sprintf("%v", t))
 	c.Header("Content-Type", "text/javascript")
-	c.String(200, fmt.Sprintf("var uatv_me_uuid='%s';", sesUuid))
+	c.String(200, fmt.Sprintf("var uatv_me_uuid='%s',lang='%s';", sesUuid, acceptLanguage))
 }
 
 func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac string, remoteIp string, acceptLanguage string, refererSrc string, userAgent string) {
 	ipv4 := false
 	var zoneId pgx.NullInt32
 	var uaBrowserVersion pgx.NullInt16
+	var uaBrowserFamily pgx.NullString
 	var zoneName pgx.NullString
 	var mac pgx.NullString
 	var referer pgx.NullString
 
+	// fmt.Printf("umac: %v\n", userMac)
 	umac, err := net.ParseMAC(userMac)
 	if err == nil {
 		mac = pgx.NullString{String: umac.String(), Valid: true}
@@ -98,10 +102,20 @@ func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac s
 	}
 	ua := user_agent.New(userAgent)
 
-	uaBrowserFamily, version := ua.Browser()
-	browserVersion, err := strconv.Atoi(version[0:strings.Index(version, ".")])
-	if err == nil {
-		uaBrowserVersion = pgx.NullInt16{Int16: int16(browserVersion), Valid: true}
+	browserFamily, version := ua.Browser()
+
+	// fmt.Println("------------ userAgent ------------")
+	// fmt.Printf("%v", userAgent)
+	if len(version) > 2 {
+		fmt.Println("------------ version ----------")
+		// fmt.Printf("%v", version)
+		browserVersion, err := strconv.Atoi(version[0:strings.Index(version, ".")])
+		if err == nil {
+			uaBrowserVersion = pgx.NullInt16{Int16: int16(browserVersion), Valid: true}
+		}
+	}
+	if len(browserFamily) > 2 {
+		uaBrowserFamily = pgx.NullString{String: browserFamily, Valid: true}
 	}
 
 	ip, _, err := net.SplitHostPort(remoteIp)
@@ -116,6 +130,7 @@ func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac s
 		referer = pgx.NullString{String: refererSrc, Valid: true}
 	}
 
+	// fmt.Printf("mac: %v\n", mac)
 	if _, err := self.DB.Exec("setShowBanner", t, sesUuid, zoneId, ua.Bot(), mac, ip, ipv4, acceptLanguage, uaBrowserFamily, uaBrowserVersion, ua.OS(), ua.Platform(), ua.Mobile(), userAgent, referer); err != nil {
 		self.Log.Error("Exec", "setShowBanner", err)
 	}
