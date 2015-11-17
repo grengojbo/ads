@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/grengojbo/ads/config"
+	"github.com/grengojbo/adscore"
 	"github.com/jackc/pgx"
 	"github.com/mssola/user_agent"
 	"github.com/nu7hatch/gouuid"
@@ -72,7 +72,7 @@ func (self *Server) showPing(c *gin.Context) {
 
 	t := time.Now().UTC()
 	acceptLanguage := c.Request.Header.Get("Accept-Language")[0:2]
-	self.saveShow(t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), acceptLanguage, c.Request.Referer(), c.Request.UserAgent())
+	go self.saveShow(t, sesUuid, storeID, c.Param("umac"), c.ClientIP(), acceptLanguage, c.Request.Referer(), c.Request.UserAgent())
 
 	c.Header("cache-control", "priviate, max-age=0, no-cache")
 	c.Header("pragma", "no-cache")
@@ -82,20 +82,12 @@ func (self *Server) showPing(c *gin.Context) {
 	c.String(200, fmt.Sprintf("var uatv_me_uuid='%s',lang='%s';", sesUuid, acceptLanguage))
 }
 
-func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac string, remoteIp string, acceptLanguage string, refererSrc string, userAgent string) {
-	ipv4 := false
+func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, params string, remoteIp string, acceptLanguage string, refererSrc string, userAgent string) {
 	var zoneId pgx.NullInt32
 	var uaBrowserVersion pgx.NullInt16
 	var uaBrowserFamily pgx.NullString
 	var zoneName pgx.NullString
-	var mac pgx.NullString
 	var referer pgx.NullString
-
-	// fmt.Printf("umac: %v\n", userMac)
-	umac, err := net.ParseMAC(userMac)
-	if err == nil {
-		mac = pgx.NullString{String: umac.String(), Valid: true}
-	}
 
 	if err := self.DB.QueryRow("getZoneById", storeID).Scan(&zoneId, &zoneName); err != nil {
 		self.Log.Error("Is not", "zoneId", storeID)
@@ -107,7 +99,7 @@ func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac s
 	// fmt.Println("------------ userAgent ------------")
 	// fmt.Printf("%v", userAgent)
 	if len(version) > 2 {
-		fmt.Println("------------ version ----------")
+		// fmt.Println("------------ version ----------")
 		// fmt.Printf("%v", version)
 		browserVersion, err := strconv.Atoi(version[0:strings.Index(version, ".")])
 		if err == nil {
@@ -118,19 +110,11 @@ func (self *Server) saveShow(t time.Time, sesUuid string, storeID int, userMac s
 		uaBrowserFamily = pgx.NullString{String: browserFamily, Valid: true}
 	}
 
-	ip, _, err := net.SplitHostPort(remoteIp)
-	if err != nil {
-		ip = "127.0.0.1"
-	}
-	if net.ParseIP(ip).To4() != nil {
-		ipv4 = true
-	}
-
+	ip, ipv4, mac := adscore.ParseParams(params)
 	if len(refererSrc) > 1 {
 		referer = pgx.NullString{String: refererSrc, Valid: true}
 	}
 
-	// fmt.Printf("mac: %v\n", mac)
 	if _, err := self.DB.Exec("setShowBanner", t, sesUuid, zoneId, ua.Bot(), mac, ip, ipv4, acceptLanguage, uaBrowserFamily, uaBrowserVersion, ua.OS(), ua.Platform(), ua.Mobile(), userAgent, referer); err != nil {
 		self.Log.Error("Exec", "setShowBanner", err)
 	}
